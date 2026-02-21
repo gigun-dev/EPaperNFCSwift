@@ -23,7 +23,7 @@ private extension DisplayType.ColorPalette {
         case 0x07:
             self = .blackWhiteYellowRed
         default:
-            throw ISO7816APDUCommandError.invalidResponsePayload
+            throw ISO7816APDUCommandError.unknownResponsePayload
         }
     }
 
@@ -45,7 +45,7 @@ private extension DisplayType.Orientation {
         case 0x01:
             self = .normal
         default:
-            throw ISO7816APDUCommandError.invalidResponsePayload
+            throw ISO7816APDUCommandError.unknownResponsePayload
         }
     }
 }

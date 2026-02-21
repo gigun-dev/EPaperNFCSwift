@@ -40,6 +40,7 @@ extension Data {
 public enum ISO7816APDUCommandError: Error {
     case invalidData
     case failure(NFCISO7816ResponseAPDU)
+    case unknownResponsePayload
     case invalidResponsePayload
 }
 
