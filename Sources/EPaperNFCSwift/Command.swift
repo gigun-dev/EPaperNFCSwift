@@ -95,7 +95,7 @@ extension DeviceInfo: ISO7816APDUResponse {
         let orientationValue = data[0]
         var orientation = try DisplayType.Orientation(tlvValue: orientationValue)
 
-        if pixelWidth > pixelHeight {
+        if pixelWidth < pixelHeight {
             swap(&pixelWidth, &pixelHeight)
 
             // TODO: If we can know this condition from the TLV flags, use it.
