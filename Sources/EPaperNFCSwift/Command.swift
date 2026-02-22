@@ -18,7 +18,7 @@ struct AuthAPDUCommand: ISO7816APDUCommand {
 private extension DisplayType.ColorPalette {
     init(tlvValue: UInt8) throws {
         switch tlvValue {
-        case 0x01:
+        case 0x01, 0x47:
             self = .blackAndWhite
         case 0x07:
             self = .blackWhiteYellowRed
@@ -81,18 +81,29 @@ extension DeviceInfo: ISO7816APDUResponse {
         let colorPaletteValue = data[1]
         let colorPalette = try DisplayType.ColorPalette(tlvValue: colorPaletteValue)
 
-        let pixelWidth = (Int(data[5]) << 8) | Int(data[6])
+        var pixelWidth = (Int(data[5]) << 8) | Int(data[6])
 
         let height = (Int(data[3]) << 8) | Int(data[4])
-        let pixelHeight = height / colorPalette.bitsPerPixel
+        var pixelHeight = height / colorPalette.bitsPerPixel
 
         guard let data = tlv[0xA1], data.count == 7 else {
             throw ISO7816APDUCommandError.invalidResponsePayload
         }
 
         // TODO: This might be wrong, assumed this is `scanType`.
+        // TODO: It's unknown that we can use this for 2.9-inch 4-Color or 4.2-inch 2-Color devices.
         let orientationValue = data[0]
-        let orientation = try DisplayType.Orientation(tlvValue: orientationValue)
+        var orientation = try DisplayType.Orientation(tlvValue: orientationValue)
+
+        if pixelWidth > pixelHeight {
+            swap(&pixelWidth, &pixelHeight)
+
+            // TODO: If we can know this condition from the TLV flags, use it.
+            // 4.2-inch 2-Color device would be this condition.
+            if orientation == .normal {
+                orientation = .flipped
+            }
+        }
 
         displayType = DisplayType(
             colorPalette: colorPalette,
@@ -139,6 +150,30 @@ private extension Data {
         }
         return result
     }
+
+    func flippedImageData(width: Int, height: Int) -> Data {
+        // Horizontally flip data.
+        var source = Data(self)
+        var result = Data(count: width * height)
+        source.withUnsafeMutableBytes { sourcePointer in
+            result.withUnsafeMutableBytes { resultPointer in
+                var sourceBuffer = vImage_Buffer(
+                    data: sourcePointer.baseAddress!,
+                    height: vImagePixelCount(height),
+                    width: vImagePixelCount(width),
+                    rowBytes: width
+                )
+                var resultBuffer = vImage_Buffer(
+                    data: resultPointer.baseAddress!,
+                    height: vImagePixelCount(height),
+                    width: vImagePixelCount(width),
+                    rowBytes: width
+                )
+                vImageHorizontalReflect_Planar8(&sourceBuffer, &resultBuffer, vImage_Flags(kvImageNoFlags))
+            }
+        }
+        return result
+    }
 }
 
 private extension Image {
@@ -148,12 +183,14 @@ private extension Image {
             data
         case .rotated:
             data.rotatedImageData(width: displayType.width, height: displayType.height)
+        case .flipped:
+            data.flippedImageData(width: displayType.width, height: displayType.height)
         }
     }
 
     var bufferWidth: Int {
         switch displayType.orientation {
-        case .normal:
+        case .normal, .flipped:
             displayType.width
         case .rotated:
             displayType.height
@@ -162,7 +199,7 @@ private extension Image {
 
     var bufferHeight: Int {
         switch displayType.orientation {
-        case .normal:
+        case .normal, .flipped:
             displayType.height
         case .rotated:
             displayType.width

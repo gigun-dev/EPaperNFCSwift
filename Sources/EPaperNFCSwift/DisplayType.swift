@@ -43,6 +43,7 @@ public struct DisplayType: Hashable, Identifiable, Sendable {
     public enum Orientation: Sendable {
         case normal
         case rotated
+        case flipped
     }
 
     public var id: Self {
@@ -79,7 +80,7 @@ extension DisplayType {
 
     public static let fourPointTwoInchBlackAndWhite = DisplayType(
         colorPalette: .blackAndWhite,
-        orientation: .normal,
+        orientation: .flipped,
         width: 400,
         height: 300
     )
