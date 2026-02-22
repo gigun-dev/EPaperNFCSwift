@@ -71,16 +71,6 @@
         }
       }
     },
-    "90-degree rotated" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "90度回転"
-          }
-        }
-      }
-    },
     "Colors" : {
       "localizations" : {
         "ja" : {
@@ -247,26 +237,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "名前"
-          }
-        }
-      }
-    },
-    "Normal" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "通常"
-          }
-        }
-      }
-    },
-    "Orientation" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "画像の向き"
           }
         }
       }

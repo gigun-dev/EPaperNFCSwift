@@ -20,17 +20,6 @@ private extension DisplayType.ColorPalette {
     }
 }
 
-private extension DisplayType.Orientation {
-    var localizedName: LocalizedStringKey {
-        switch self {
-        case .normal:
-            "Normal"
-        case .rotated:
-            "90-degree rotated"
-        }
-    }
-}
-
 struct DeviceInfoView: View {
     var deviceInfo: DeviceInfo
 
@@ -53,12 +42,6 @@ struct DeviceInfoView: View {
             Text(deviceInfo.displayType.colorPalette.localizedName)
         } label: {
             Text("Colors")
-        }
-
-        LabeledContent {
-            Text(deviceInfo.displayType.orientation.localizedName)
-        } label: {
-            Text("Orientation")
         }
 
         LabeledContent {
