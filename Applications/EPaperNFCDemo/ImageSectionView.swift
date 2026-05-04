@@ -166,9 +166,16 @@ struct ImageSectionView: View {
                                 return
                             }
 
-                            let scaled = ciImage.scaled(
+                            let displaySize = newValue.displayType.size
+                            let imageIsPortrait = ciImage.extent.height > ciImage.extent.width
+                            let displayIsPortrait = displaySize.height > displaySize.width
+                            let oriented = imageIsPortrait == displayIsPortrait
+                                ? ciImage
+                                : ciImage.oriented(.right)
+
+                            let scaled = oriented.scaled(
                                 contentMode: .scaleToFit(backgroundColor: .white),
-                                size: displayType.size
+                                size: displaySize
                             )
                             let ditheredData = await scaled.atkinsonDithered(for: displayType.colorPalette)
                             let ditheredImage = try EPaperNFCSwift.Image(data: ditheredData, for: displayType)
