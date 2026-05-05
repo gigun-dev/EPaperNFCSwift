@@ -12,6 +12,8 @@ struct PreviewEnvironmentViewModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .environment(PreviewEPaperNFCService().eraseToAnyEPaperNFCService())
+            .environment(SendLogStore.shared)
+            .environment(OrientationObserver())
     }
 }
 

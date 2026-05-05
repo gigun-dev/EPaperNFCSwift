@@ -21,7 +21,8 @@ protocol EPaperNFCServiceProtocol: AnyObject, Observable {
         onBegin: @escaping OnSessionBegin,
         onSendImageProgress: @escaping OnSessionSendImageProgress,
         onWaitForRefresh: @escaping OnSessionWaitForRefresh,
-        onError: @escaping OnSessionError
+        onError: @escaping OnSessionError,
+        onPhase: @escaping OnSessionSendImagePhase
     ) async throws -> Void
 }
 
@@ -49,14 +50,16 @@ final class AnyEPaperNFCService: EPaperNFCServiceProtocol {
         onBegin: @escaping OnSessionBegin,
         onSendImageProgress: @escaping OnSessionSendImageProgress,
         onWaitForRefresh: @escaping OnSessionWaitForRefresh,
-        onError: @escaping OnSessionError
+        onError: @escaping OnSessionError,
+        onPhase: @escaping OnSessionSendImagePhase
     ) async throws -> Void {
         try await service.sendImage(
             image,
             onBegin: onBegin,
             onSendImageProgress: onSendImageProgress,
             onWaitForRefresh: onWaitForRefresh,
-            onError: onError
+            onError: onError,
+            onPhase: onPhase
         )
     }
 }
@@ -85,16 +88,19 @@ final class EPaperNFCService: EPaperNFCServiceProtocol {
         onBegin: @escaping OnSessionBegin,
         onSendImageProgress: @escaping OnSessionSendImageProgress,
         onWaitForRefresh: @escaping OnSessionWaitForRefresh,
-        onError: @escaping OnSessionError
+        onError: @escaping OnSessionError,
+        onPhase: @escaping OnSessionSendImagePhase
     ) async throws -> Void {
         try await EPaperNFCSwift.sendImage(
             image,
             onBegin: onBegin,
             onSendImageProgress: onSendImageProgress,
             onWaitForRefresh: onWaitForRefresh,
-            onError: onError
+            onError: onError,
+            onPhase: onPhase
         )
-    }}
+    }
+}
 
 @MainActor
 @Observable
@@ -115,21 +121,27 @@ final class PreviewEPaperNFCService: EPaperNFCServiceProtocol {
         onBegin: OnSessionBegin,
         onSendImageProgress: OnSessionSendImageProgress,
         onWaitForRefresh: OnSessionWaitForRefresh,
-        onError: OnSessionError
+        onError: OnSessionError,
+        onPhase: OnSessionSendImagePhase
     ) async throws -> Void {
         _ = await onBegin()
+        await onPhase(.auth)
 
         try await Task.sleep(for: .seconds(2.0))
 
         for progress in 0..<100 {
+            await onPhase(.sendChunkStarted(index: progress, count: 100))
+            await onPhase(.sendChunkCompleted(index: progress, count: 100))
             _ = await onSendImageProgress(Float(progress) / 100)
             try await Task.sleep(for: .milliseconds(10))
         }
 
+        await onPhase(.refreshStarted)
         for _ in 0..<10 {
             _ = await onWaitForRefresh(false)
             try await Task.sleep(for: .milliseconds(500))
         }
+        await onPhase(.refreshCompleted)
         _ = await onWaitForRefresh(true)
     }
 }

@@ -37,44 +37,75 @@ struct SendImageView: View {
         } else {
             Button {
                 Task {
-                    do {
-                        guard !isLoading else {
-                            return
-                        }
-
-                        isLoading = true
-                        defer {
-                            isLoading = false
-                        }
-
-                        lastError = nil
-
-                        try await ePaperNFCService.sendImage(image) {
-                            return .message(String(localized: "Hold your device near the e-Paper."))
-                        } onSendImageProgress: { progress in
-                            return .message(String(localized: "Sending… \(progress, format: .percent.precision(.fractionLength(0)))"))
-                        } onWaitForRefresh: { isCompleted in
-                            return .message(isCompleted ? String(localized: "Completed.") : String(localized: "Updating…"))
-                        } onError: { error in
-                            logger.error(error)
-                            Task { @MainActor in
-                                lastError = error
-                            }
-                            return .message(String(localized: "Failed."))
-                        }
-                    } catch {
-                        logger.error(error)
-                    }
+                    await runSend()
                 }
             } label: {
                 Text("Send")
             }
         }
 
-        if lastError != nil{
+        if lastError != nil {
             Text("Failed to send.")
                 .foregroundStyle(.red)
         }
+    }
+
+    private func runSend() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        lastError = nil
+
+        let recorder = SendLogRecorder(
+            displayTypeID: String(describing: image.displayType),
+            dataByteCount: image.data.count,
+            paletteHistogram: paletteHistogram(for: image)
+        )
+
+        var thrownError: (any Error)?
+        do {
+            try await ePaperNFCService.sendImage(image) {
+                return .message(String(localized: "Hold your device near the e-Paper."))
+            } onSendImageProgress: { progress in
+                return .message(String(localized: "Sending… \(progress, format: .percent.precision(.fractionLength(0)))"))
+            } onWaitForRefresh: { isCompleted in
+                return .message(isCompleted ? String(localized: "Completed.") : String(localized: "Updating…"))
+            } onError: { error in
+                logger.error(error)
+                Task { @MainActor in
+                    lastError = error
+                }
+                return .message(String(localized: "Failed."))
+            } onPhase: { phase in
+                recorder.record(phase)
+            }
+        } catch {
+            thrownError = error
+            logger.error(error)
+        }
+
+        let entry = recorder.finalize(error: thrownError)
+        SendLogStore.shared.append(entry)
+    }
+}
+
+private func paletteHistogram(for image: EPaperNFCSwift.Image) -> [PaletteBin] {
+    let labels = paletteLabels(for: image.displayType.colorPalette)
+    var counts = [Int](repeating: 0, count: labels.count)
+    for byte in image.data {
+        let index = Int(byte)
+        if index < counts.count {
+            counts[index] += 1
+        }
+    }
+    return zip(labels, counts).map { PaletteBin(label: $0.0, count: $0.1) }
+}
+
+private func paletteLabels(for colorPalette: DisplayType.ColorPalette) -> [String] {
+    switch colorPalette {
+    case .blackAndWhite: ["Black", "White"]
+    case .blackWhiteYellowRed: ["Black", "White", "Yellow", "Red"]
     }
 }
 

@@ -14,6 +14,8 @@ struct MainApp: App {
         WindowGroup {
             MainView()
                 .environment(EPaperNFCService().eraseToAnyEPaperNFCService())
+                .environment(SendLogStore.shared)
+                .environment(OrientationObserver())
         }
     }
 }

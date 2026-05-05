@@ -13,28 +13,26 @@ struct MainView: View {
     @State
     private var displayType: DisplayType?
     @State
-    private var image: EPaperNFCSwift.Image?
+    private var sCurveStrength: Float = 1.0
+    @State
+    private var unsharpRadius: Float = 1.0
+    @State
+    private var unsharpIntensity: Float = 0.7
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("e-Paper") {
-                    DeviceSectionView(displayType: $displayType)
+        Group {
+            if displayType == nil {
+                NavigationStack {
+                    DeviceSetupView(displayType: $displayType)
                 }
-
-                if let displayType {
-                    Section("Image") {
-                        ImageSectionView(displayType: displayType, image: $image)
-                    }
-
-                    if let image {
-                        Section {
-                            SendImageView(image: image)
-                        }
-                    }
-                }
+            } else {
+                RootTabView(
+                    displayType: $displayType,
+                    sCurveStrength: $sCurveStrength,
+                    unsharpRadius: $unsharpRadius,
+                    unsharpIntensity: $unsharpIntensity
+                )
             }
-            .navigationTitle("ePaper NFC Demo")
         }
     }
 }
