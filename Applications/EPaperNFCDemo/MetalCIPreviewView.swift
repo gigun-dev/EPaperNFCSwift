@@ -51,7 +51,13 @@ struct MetalCIPreviewView: UIViewRepresentable {
             }
         }
 
-        nonisolated func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+        nonisolated func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            // SwiftUI frame change → MTKView drawable resize. Without this,
+            // MTKView keeps its previously-drawn texture and stretches it
+            // into the new bounds, which squashes the image during layout
+            // animations (e.g. opening/closing the Tune panel).
+            Task { @MainActor in view.setNeedsDisplay() }
+        }
 
         nonisolated func draw(in view: MTKView) {
             MainActor.assumeIsolated {

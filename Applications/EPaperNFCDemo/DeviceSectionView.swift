@@ -44,15 +44,13 @@ struct DeviceSectionView: View {
                     Text("Detected")
                         .tag(displayType as DisplayType?)
                 }
-                Text("Detect")
-                    .tag(nil as DisplayType?)
             } label: {
                 Text("Display")
             }
 
-            if displayType == nil {
-                DetectDeviceInfoView(deviceInfo: $deviceInfo)
-            }
+            // Always available — pairing now lives behind this explicit
+            // action instead of gating app launch.
+            DetectDeviceInfoView(deviceInfo: $deviceInfo)
 
             if let deviceInfo {
                 DeviceInfoView(deviceInfo: deviceInfo)

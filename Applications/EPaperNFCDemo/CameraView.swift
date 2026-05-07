@@ -24,6 +24,13 @@ struct CameraView: View {
     let unsharpRadius: Float
     let unsharpIntensity: Float
     var onCapture: (CIImage) -> Void
+    // Tap on the bottom-left thumbnail. Parent decides where to go — currently
+    // switches to the Photos tab so the user lands inside the gallery rather
+    // than just re-opening the last picture.
+    var onTapHistoryThumb: () -> Void = {}
+    // Long-press on the bottom-left thumbnail re-opens the most recent
+    // history entry directly in the Composer.
+    var onLongPressHistoryThumb: (HistoryEntry) -> Void = { _ in }
 
     @AppStorage("livePreviewQuality") private var previewQualityRaw: String = LivePreviewQuality.balanced.rawValue
     @AppStorage("frontCameraWide") private var frontWide: Bool = false
@@ -34,13 +41,12 @@ struct CameraView: View {
     private let frontNormalZoom: CGFloat = 1.4
 
     @Environment(OrientationObserver.self) private var orientation
+    @Environment(HistoryStore.self) private var historyStore
 
     @State private var session = CameraSession()
     @State private var pipeline: LiveDitherPipeline?
     @State private var isCapturing: Bool = false
     @State private var focusIndicator: FocusIndicator?
-    @State private var lastCapturedSource: CIImage?
-    @State private var lastCapturedThumbnail: UIImage?
     @State private var isBoosting: Bool = false
 
     private struct FocusIndicator: Identifiable {
@@ -346,12 +352,18 @@ struct CameraView: View {
 
     @ViewBuilder
     private var thumbnailButton: some View {
-        if let thumbnail = lastCapturedThumbnail, let source = lastCapturedSource {
+        // Show the most recent successfully sent dithered image — what was
+        // actually pushed to the e-paper, not the raw source. Tap routes the
+        // user into the Photos tab (history view); long-press jumps straight
+        // back into Composer to re-tune that entry.
+        if let recent = historyStore.mostRecentSent(),
+           let dither = recent.loadImage(.dither) ?? recent.loadImage(.thumb) {
             Button {
-                onCapture(source)
+                onTapHistoryThumb()
             } label: {
-                Image(uiImage: thumbnail)
+                Image(uiImage: dither)
                     .resizable()
+                    .interpolation(.none)
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 40, height: 40)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -361,7 +373,11 @@ struct CameraView: View {
                     }
                     .rotationEffect(iconRotation)
             }
-            .accessibilityLabel("Last captured photo")
+            .accessibilityLabel("Open photo library")
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4)
+                    .onEnded { _ in onLongPressHistoryThumb(recent) }
+            )
         } else {
             Color.clear
         }
@@ -424,20 +440,13 @@ struct CameraView: View {
             {
                 let oriented = baseCI.oriented(forExifOrientation: exifOrientation(of: data))
                 let cropped = pipeline.croppedToDisplayAspect(oriented)
-
-                lastCapturedSource = cropped
-                lastCapturedThumbnail = baseUI
-                Task { await PhotoLibrarySaver.save(baseUI) }
+                _ = baseUI  // source is preserved via the HistoryEntry auto-draft in Composer
                 onCapture(cropped)
             } else if let source = session.latestImage {
                 let cropped = pipeline.croppedToDisplayAspect(source)
                 let context = CIContext()
                 guard let cg = context.createCGImage(cropped, from: cropped.extent) else { return }
                 let snapCI = CIImage(cgImage: cg)
-                let snapUI = UIImage(cgImage: cg)
-                lastCapturedSource = snapCI
-                lastCapturedThumbnail = snapUI
-                Task { await PhotoLibrarySaver.save(snapUI) }
                 onCapture(snapCI)
             }
         }

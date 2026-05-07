@@ -19,9 +19,11 @@ struct RootTabView: View {
 
     private enum TabSelection: Hashable { case camera, photos }
 
-    private struct PendingSource: Identifiable {
+    struct PendingSource: Identifiable {
         let id = UUID()
         let image: CIImage
+        let entrySource: EntrySource
+        let existingEntryID: UUID?
     }
 
     var body: some View {
@@ -37,6 +39,8 @@ struct RootTabView: View {
             ComposerView(
                 source: pending.image,
                 displayType: displayType ?? .fourPointTwoInchBlackWhiteYellowRed,
+                entrySource: pending.entrySource,
+                existingEntryID: pending.existingEntryID,
                 sCurveStrength: $sCurveStrength,
                 unsharpRadius: $unsharpRadius,
                 unsharpIntensity: $unsharpIntensity
@@ -55,7 +59,13 @@ struct RootTabView: View {
                         unsharpRadius: unsharpRadius,
                         unsharpIntensity: unsharpIntensity,
                         onCapture: { ci in
-                            pendingSource = PendingSource(image: ci)
+                            pendingSource = PendingSource(image: ci, entrySource: .camera, existingEntryID: nil)
+                        },
+                        onTapHistoryThumb: {
+                            withAnimation { selection = .photos }
+                        },
+                        onLongPressHistoryThumb: { entry in
+                            openComposer(for: entry)
                         }
                     )
                 }
@@ -73,9 +83,9 @@ struct RootTabView: View {
                 if let displayType {
                     PhotosTabView(
                         displayType: displayType,
-                        onPick: { ci in
-                            pendingSource = PendingSource(image: ci)
-                        }
+                        sCurveStrength: $sCurveStrength,
+                        unsharpRadius: $unsharpRadius,
+                        unsharpIntensity: $unsharpIntensity
                     )
                 }
             }
@@ -111,6 +121,25 @@ struct RootTabView: View {
     // standard portrait screen and rotating its icons would be confusing.
     private var toolbarIconRotation: Angle {
         selection == .camera ? orientation.iconRotation : .degrees(0)
+    }
+
+    // Restore an entry into the Composer: load its source image from disk,
+    // re-apply the saved tuning sliders, and open the cover with
+    // existingEntryID so a successful re-send updates the same entry instead
+    // of creating a new one.
+    private func openComposer(for entry: HistoryEntry) {
+        guard let sourceUI = entry.loadImage(.source) ?? entry.loadImage(.thumb),
+              let cg = sourceUI.cgImage
+        else { return }
+        let ci = CIImage(cgImage: cg)
+        sCurveStrength = entry.sCurveStrength
+        unsharpRadius = entry.unsharpRadius
+        unsharpIntensity = entry.unsharpIntensity
+        pendingSource = PendingSource(
+            image: ci,
+            entrySource: entry.source,
+            existingEntryID: entry.id
+        )
     }
 }
 

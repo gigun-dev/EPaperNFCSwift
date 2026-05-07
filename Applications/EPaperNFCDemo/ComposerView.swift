@@ -20,6 +20,10 @@ private nonisolated let logger = Logger(
 struct ComposerView: View {
     let source: CIImage
     let displayType: DisplayType
+    let entrySource: EntrySource
+    // When non-nil, send-success updates the existing entry instead of
+    // creating a new one. Set when re-opening from history.
+    let existingEntryID: UUID?
 
     @Binding var sCurveStrength: Float
     @Binding var unsharpRadius: Float
@@ -27,12 +31,17 @@ struct ComposerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AnyEPaperNFCService.self) private var ePaperNFCService
+    @Environment(HistoryStore.self) private var historyStore
 
     @State private var preview: UIImage?
     @State private var ditheredImage: EPaperNFCSwift.Image?
     @State private var renderTask: Task<Void, Never>?
     @State private var isSending: Bool = false
     @State private var sendError: (any Error)?
+    // Auto-created draft entry ID when this view is opened with a fresh
+    // source (existingEntryID == nil). Lets the source image persist in
+    // My Photos even if the user never hits Send.
+    @State private var draftEntryID: UUID?
 
     var body: some View {
         NavigationStack {
@@ -70,7 +79,10 @@ struct ComposerView: View {
                 }
             }
         }
-        .task { kickRender() }
+        .task {
+            kickRender()
+            await ensureDraftEntry()
+        }
         .onChange(of: TuneInputs(
             sCurveStrength: sCurveStrength,
             unsharpRadius: unsharpRadius,
@@ -279,7 +291,71 @@ struct ComposerView: View {
         SendLogStore.shared.append(entry)
 
         if thrownError == nil && sendError == nil {
+            await persistHistory(image: image)
             dismiss()
+        }
+    }
+
+    @MainActor
+    private func persistHistory(image: EPaperNFCSwift.Image) async {
+        let ditherUI: UIImage? = preview
+        let sourceUI: UIImage? = await Self.renderUIImage(from: source)
+        let settings = RenderSettings(
+            sCurveStrength: sCurveStrength,
+            unsharpRadius: unsharpRadius,
+            unsharpIntensity: unsharpIntensity
+        )
+        // Effective entry to update: explicit existing entry (re-edit from
+        // history) takes precedence; otherwise the auto-draft we created on
+        // first appear gets promoted to .sent.
+        if let id = existingEntryID ?? draftEntryID,
+           let existing = historyStore.entry(id: id) {
+            historyStore.updateOnSendSuccess(
+                existing,
+                renderSettings: settings,
+                ditherImage: ditherUI,
+                sourceImage: sourceUI
+            )
+        } else {
+            historyStore.record(
+                source: entrySource,
+                status: .sent,
+                displayType: image.displayType,
+                renderSettings: settings,
+                ditherImage: ditherUI,
+                sourceImage: sourceUI,
+                sentAt: Date()
+            )
+        }
+    }
+
+    @MainActor
+    private func ensureDraftEntry() async {
+        // Only create a draft when the Composer was opened on a fresh source.
+        // History-restore flows (existingEntryID set) already have an entry.
+        guard existingEntryID == nil, draftEntryID == nil else { return }
+        let sourceUI = await Self.renderUIImage(from: source)
+        let settings = RenderSettings(
+            sCurveStrength: sCurveStrength,
+            unsharpRadius: unsharpRadius,
+            unsharpIntensity: unsharpIntensity
+        )
+        let entry = historyStore.record(
+            source: entrySource,
+            status: .draft,
+            displayType: displayType,
+            renderSettings: settings,
+            ditherImage: nil,
+            sourceImage: sourceUI
+        )
+        draftEntryID = entry.id
+        // Auto-render initial dither in the background so the just-captured
+        // entry shows with the filter applied next time the user lands in
+        // the gallery — without waiting for an explicit send.
+        let entryID = entry.id
+        let dt = displayType
+        Task.detached(priority: .utility) {
+            await renderInitialDitherIfMissing(entryID: entryID, displayType: dt, settings: settings)
         }
     }
 }
