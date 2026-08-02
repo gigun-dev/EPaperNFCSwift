@@ -1,0 +1,50 @@
+<!-- EPaperNFCDemo アプリアイコンの生成元。ここから AppIcon.icon の各レイヤーを書き出す。
+
+     【再生成】
+       swift <ios-app-icon>/scripts/render_svg.swift Design/AppIcon.svg out/ --size 1024
+       # icon.json の layers は「先頭が最前面」なので **逆順** に並べる
+       # 背景(00-bg)とグロー(01-glow)は "glass": false
+       #   ── ぼかした層をガラス板として扱わせると、システムが縁に鏡面反射を付け、
+       #      ぼかしたはずの円に硬い輪郭が出る(ぼかしを強めるほど目立つ)
+
+     【構図の確定値・これ以降動かさない】
+       21 粒 / 15 度回した正方格子を半径 372 の円で切り抜き / ゆらぎ無し
+       粒径は中心 66 から外へ 0.42 の割合で縮み、セル幅の 0.48 で頭打ち(接するが重ならない)
+       色は半径で3帯: 中央=紙白 #f7f3e8 / 中間=黄 #e2a83f / 外周=赤 #c8503f
+       中央の発光は黄・ガウス σ=92
+
+     【試して撤回したもの】
+       * 六方最密の格子 …… e-ink の画素は矩形。素材の性質と合わない
+       * 位置と半径のゆらぎ …… e-ink は揺らがない。規則的であることが素材らしさ
+       * 点ごとの放射グラデーション …… 網点ではなく飴玉になる(禁じ手)
+       * 同心リング配置 …… 綺麗だが花火に見える
+
+     【純正から持ち込んだもの】references/native-look.md の6要素のうち、
+     この案に足せる3つ。塗りは平たいまま、影と縁の光だけで点を浮かせている。
+       * 点ごとの環境影(背景の青みを帯びた濃色。純黒にしない)
+       * リムライト —— **線として**流す。塗りに掛けると球になって飴玉に戻る
+       (半透明の合成は点が重なっていないので効かない/場の照明は右下の赤が沈むため不採用)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs>
+<radialGradient id="bgg" cx="30%" cy="22%" r="100%">
+  <stop offset="0" stop-color="#2f3444"/><stop offset="1" stop-color="#0a0b0f"/>
+</radialGradient>
+<filter id="glow" x="-70%" y="-70%" width="240%" height="240%">
+  <feGaussianBlur stdDeviation="92"/></filter>
+<!-- 点ごとの環境影。純黒でなく背景の青みを帯びた濃色にする。 -->
+<filter id="amb" x="-60%" y="-60%" width="220%" height="220%">
+  <feGaussianBlur stdDeviation="9"/></filter>
+<!-- 点の縁の光。上辺で白く下へ抜ける。**塗りではなく線**に流すのが要 ——
+     塗りに放射グラデを掛けると球になって飴玉に見える。 -->
+<linearGradient id="rim" x1=".2" y1="0" x2=".8" y2="1">
+  <stop offset="0" stop-color="#ffffff" stop-opacity=".85"/>
+  <stop offset=".4" stop-color="#ffffff" stop-opacity=".18"/>
+  <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+</linearGradient>
+<!-- 場全体の照明。左上を持ち上げ、右下を沈める。点1つずつではなく塊に掛ける。 -->
+<radialGradient id="lit" cx="28%" cy="22%" r="86%">
+  <stop offset="0" stop-color="#ffffff" stop-opacity=".22"/>
+  <stop offset=".55" stop-color="#ffffff" stop-opacity="0"/>
+  <stop offset="1" stop-color="#000000" stop-opacity=".28"/>
+</radialGradient>
+</defs><g data-layer="00-bg"><rect width="1000" height="1000" fill="url(#bgg)"/></g><g data-layer="01-glow" opacity="0.52"><circle cx="500" cy="500" r="340" fill="#e2a83f" filter="url(#glow)"/></g><g data-layer="02-red"><g fill="#0a0d18" opacity=".55" filter="url(#amb)"><circle cx="435.8" cy="180.4" r="41.0"/><circle cx="580.6" cy="219.2" r="43.6"/><circle cx="725.5" cy="258.0" r="41.0"/><circle cx="252.0" cy="286.5" r="41.0"/><circle cx="831.6" cy="441.8" r="41.0"/><circle cx="213.2" cy="431.4" r="43.6"/><circle cx="792.8" cy="586.6" r="43.6"/><circle cx="174.4" cy="576.2" r="41.0"/><circle cx="754.0" cy="731.5" r="41.0"/><circle cx="280.5" cy="760.0" r="41.0"/><circle cx="425.4" cy="798.8" r="43.6"/><circle cx="570.2" cy="837.6" r="41.0"/></g><g fill="#c8503f"><circle cx="432.8" cy="171.4" r="41.0"/><circle cx="577.6" cy="210.2" r="43.6"/><circle cx="722.5" cy="249.0" r="41.0"/><circle cx="249.0" cy="277.5" r="41.0"/><circle cx="828.6" cy="432.8" r="41.0"/><circle cx="210.2" cy="422.4" r="43.6"/><circle cx="789.8" cy="577.6" r="43.6"/><circle cx="171.4" cy="567.2" r="41.0"/><circle cx="751.0" cy="722.5" r="41.0"/><circle cx="277.5" cy="751.0" r="41.0"/><circle cx="422.4" cy="789.8" r="43.6"/><circle cx="567.2" cy="828.6" r="41.0"/></g><g fill="none" stroke="url(#rim)" stroke-width="5"><circle cx="432.8" cy="171.4" r="38.5"/><circle cx="577.6" cy="210.2" r="41.1"/><circle cx="722.5" cy="249.0" r="38.5"/><circle cx="249.0" cy="277.5" r="38.5"/><circle cx="828.6" cy="432.8" r="38.5"/><circle cx="210.2" cy="422.4" r="41.1"/><circle cx="789.8" cy="577.6" r="41.1"/><circle cx="171.4" cy="567.2" r="38.5"/><circle cx="751.0" cy="722.5" r="38.5"/><circle cx="277.5" cy="751.0" r="38.5"/><circle cx="422.4" cy="789.8" r="41.1"/><circle cx="567.2" cy="828.6" r="38.5"/></g></g><g data-layer="03-yellow"><g fill="#0a0d18" opacity=".55" filter="url(#amb)"><circle cx="396.9" cy="325.3" r="50.2"/><circle cx="686.7" cy="402.9" r="50.2"/><circle cx="319.3" cy="615.1" r="50.2"/><circle cx="609.1" cy="692.7" r="50.2"/></g><g fill="#e2a83f"><circle cx="393.9" cy="316.3" r="50.2"/><circle cx="683.7" cy="393.9" r="50.2"/><circle cx="316.3" cy="606.1" r="50.2"/><circle cx="606.1" cy="683.7" r="50.2"/></g><g fill="none" stroke="url(#rim)" stroke-width="5"><circle cx="393.9" cy="316.3" r="47.7"/><circle cx="683.7" cy="393.9" r="47.7"/><circle cx="316.3" cy="606.1" r="47.7"/><circle cx="606.1" cy="683.7" r="47.7"/></g></g><g data-layer="04-paper"><g fill="#0a0d18" opacity=".55" filter="url(#amb)"><circle cx="541.8" cy="364.1" r="54.8"/><circle cx="358.1" cy="470.2" r="54.8"/><circle cx="503.0" cy="509.0" r="66.0"/><circle cx="647.9" cy="547.8" r="54.8"/><circle cx="464.2" cy="653.9" r="54.8"/></g><g fill="#f7f3e8"><circle cx="538.8" cy="355.1" r="54.8"/><circle cx="355.1" cy="461.2" r="54.8"/><circle cx="500.0" cy="500.0" r="66.0"/><circle cx="644.9" cy="538.8" r="54.8"/><circle cx="461.2" cy="644.9" r="54.8"/></g><g fill="none" stroke="url(#rim)" stroke-width="5"><circle cx="538.8" cy="355.1" r="52.3"/><circle cx="355.1" cy="461.2" r="52.3"/><circle cx="500.0" cy="500.0" r="63.5"/><circle cx="644.9" cy="538.8" r="52.3"/><circle cx="461.2" cy="644.9" r="52.3"/></g></g></svg>

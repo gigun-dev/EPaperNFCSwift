@@ -1,0 +1,45 @@
+{
+  "fill": {
+    "solid": "srgb:0.06275,0.07059,0.09412,1.00000"
+  },
+  "groups": [
+    {
+      "name": "Main",
+      "specular": true,
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "layers": [
+        {
+          "image-name": "04-paper.png",
+          "name": "04-paper",
+          "glass": true
+        },
+        {
+          "image-name": "03-yellow.png",
+          "name": "03-yellow",
+          "glass": true
+        },
+        {
+          "image-name": "02-red.png",
+          "name": "02-red",
+          "glass": true
+        },
+        {
+          "image-name": "01-glow.png",
+          "name": "01-glow",
+          "glass": false
+        },
+        {
+          "image-name": "00-bg.png",
+          "name": "00-bg",
+          "glass": false
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
